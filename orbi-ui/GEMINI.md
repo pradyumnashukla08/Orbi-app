@@ -1,0 +1,16 @@
+@./AGENTS.md
+
+## Gemini CLI
+
+- The rules above are imported from `AGENTS.md`, which is the single source of truth. Do not duplicate project rules in this file.
+- To change project rules, edit `AGENTS.md` and leave this import untouched.
+- Always enforce the strict API-call placement rule in `AGENTS.md` → "API call placement rules (strict)": API calls stay in the component/page file that triggers them. Never create a centralized `api/` / `services/` / `apiService.ts`; only `config/api.ts` (Axios instance, base URL, common headers/interceptors) is shared.
+- Always enforce the toast rule in `AGENTS.md` → "Toast / notification rules (strict)": use `react-native-toast-message` only (types `success` / `error` / `info`, global setup in `app/_layout.tsx` + `config/toastConfig.tsx`). Never use another toast package, `ToastAndroid`, `Alert`, or a custom toast implementation.
+- Always enforce the API error-handling rule in `AGENTS.md` → "API error handling rules (strict)": every API `catch` block calls only `clientCatchError(error)` from `config/clientCatchError.ts`. Never repeat Axios error parsing or toast logic in components, and never replace or duplicate the shared helper.
+- Always enforce the loading rule in `AGENTS.md` → "Loading & skeleton rules (strict)": every async/data-loading component or page needs a loading state (indicator, and skeleton loading for data-heavy UI with a known layout). Toggle loading around requests with `try / catch / finally`, reuse existing skeleton components, and follow the arrow-function + default-export component syntax.
+- Always enforce the Git workflow rule in `AGENTS.md` → "Git workflow rules (strict)": frontend changes start from `dev` on a new `ui/`-prefixed branch (never commit/push directly to `dev`; never touch `main` without permission). Before any push, show the branch name and a detailed change description and wait for approval (unless already granted for the task). Never force-push.
+- Always enforce the TypeScript rules in `AGENTS.md` → "TypeScript rules": proper types/interfaces, avoid `any`, type API responses and props, use `unknown` for errors, never suppress type errors without a reason.
+- Always enforce the UI & accessibility rules in `AGENTS.md` → "UI & accessibility rules": follow existing design conventions, respect Safe Area, give buttons/inputs accessible labels, keep forms usable with the keyboard open.
+- Always enforce the environment & security rules in `AGENTS.md` → "Environment & security rules": API config via env vars, never commit or expose secrets, `EXPO_PUBLIC_*` values are not secret, do not modify auth/security logic without permission.
+- Always enforce the testing & completion-report rules in `AGENTS.md` → "Testing & completion report rules": run available typecheck/lint/tests, report tests not run or failed, never claim tests passed without running them, and report modified files, changes, results, and remaining issues.
+- Always enforce the rule-preservation rule in `AGENTS.md` → "Instruction files & rule preservation": `AGENTS.md` is the source of truth, keep tool files consistent without dropping rules, never delete/replace/simplify existing rules, and report conflicts to the user instead of resolving them yourself.
