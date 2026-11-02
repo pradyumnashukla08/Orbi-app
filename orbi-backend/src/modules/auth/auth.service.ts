@@ -4,16 +4,20 @@ import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashValue, verifyHash } from '../../utils/hash.js';
 import { refreshTokenExpiry, signAccessToken, signRefreshToken } from '../../utils/jwt.js';
+import { sendMail } from '../../utils/mailer.js';
 import { toPublicUser } from '../user/user.mapper.js';
 import { User } from '../user/user.model.js';
 import type {
+  ForgotPasswordInput,
   LoginInput,
   LoginResult,
+  ResetPasswordInput,
   SignupInput,
   SignupResult,
   VerifyOtpInput,
   VerifyOtpResult,
 } from './auth.interface.js';
+import { getOtpTemplate } from '../../tamplates/email-tamplates/otp.tampltes.js';
 
 const createOtp = (): string => randomInt(100000, 1000000).toString();
 
@@ -30,6 +34,25 @@ export const signup = async (input: SignupInput): Promise<SignupResult> => {
     ? await bcrypt.hash(input.password, env.BCRYPT_SALT_ROUNDS)
     : undefined;
 
+  try {
+      const otpData = getOtpTemplate({
+        code: otp,
+        purpose: "signup", 
+        expiresInMinutes: env.OTP_EXPIRES_IN_MINUTES
+      });
+
+
+      await sendMail({
+        to: input.email,
+        subject: otpData.subject,
+        html: otpData.html,
+        text: otpData.text
+      });
+  } catch (error) {
+    console.error('[auth] Failed to send signup OTP email', error);
+    throw ApiError.internal('Unable to send verification email. Please try again.');
+  }
+
   const user = await User.create({
     fullName: input.fullName,
     email: input.email,
@@ -40,10 +63,6 @@ export const signup = async (input: SignupInput): Promise<SignupResult> => {
     otpHash,
     otpHashExpiry: new Date(Date.now() + env.OTP_EXPIRES_IN_MINUTES * 60 * 1000),
   });
-
-  if (env.NODE_ENV !== 'production') {
-    console.log(`[auth] OTP for ${user.email}: ${otp}`);
-  }
 
   return { user: toPublicUser(user) };
 };
@@ -113,4 +132,70 @@ export const login = async (input: LoginInput): Promise<LoginResult> => {
     accessTokenExpiresIn: env.JWT_ACCESS_EXPIRES_IN_SECONDS,
     refreshTokenExpiresIn: env.JWT_REFRESH_EXPIRES_IN_SECONDS,
   };
+};
+
+export const logout = async (userId: string): Promise<void> => {
+  await User.updateOne(
+    { _id: userId },
+    { $unset: { refreshTokenHash: 1, refreshTokenHashExpiry: 1 } },
+  );
+};
+
+export const forgotPassword = async (input: ForgotPasswordInput): Promise<void> => {
+  const user = await User.findOne({ email: input.email });
+
+  if (!user || user.provider !== 'local') {
+    return;
+  }
+
+  const otp = createOtp();
+  user.otpHash = hashValue(otp);
+  user.otpHashExpiry = new Date(Date.now() + env.OTP_EXPIRES_IN_MINUTES * 60 * 1000);
+  await user.save();
+
+  try {
+    const otpEmail = getOtpTemplate({
+      code: otp,
+      purpose: 'password-reset',
+      expiresInMinutes: env.OTP_EXPIRES_IN_MINUTES
+    });
+    await sendMail({
+      to: user.email,
+      subject: otpEmail.subject,
+      html: otpEmail.html,
+      text: otpEmail.text
+    });
+  } catch (error) {
+    console.error('[auth] Failed to send password reset OTP email', error);
+  }
+};
+
+export const resetPassword = async (input: ResetPasswordInput): Promise<void> => {
+  const user = await User.findOne({ email: input.email }).select('+otpHash +otpHashExpiry');
+
+  if (
+    !user ||
+    user.provider !== 'local' ||
+    !user.otpHash ||
+    !user.otpHashExpiry ||
+    user.otpHashExpiry.getTime() < Date.now() ||
+    !verifyHash(input.otp, user.otpHash)
+  ) {
+    throw ApiError.badRequest('Invalid or expired OTP');
+  }
+
+  const passwordHash = await bcrypt.hash(input.newPassword, env.BCRYPT_SALT_ROUNDS);
+
+  await User.updateOne(
+    { _id: user._id },
+    {
+      $set: { passwordHash, isVerified: true },
+      $unset: {
+        otpHash: 1,
+        otpHashExpiry: 1,
+        refreshTokenHash: 1,
+        refreshTokenHashExpiry: 1,
+      },
+    },
+  );
 };

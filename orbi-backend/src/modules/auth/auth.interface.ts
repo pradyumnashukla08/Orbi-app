@@ -34,3 +34,13 @@ export interface LoginResult {
   accessTokenExpiresIn: number;
   refreshTokenExpiresIn: number;
 }
+
+export interface ForgotPasswordInput {
+  email: string;
+}
+
+export interface ResetPasswordInput {
+  email: string;
+  otp: string;
+  newPassword: string;
+}

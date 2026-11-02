@@ -34,6 +34,21 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  email: emailSchema,
+  otp: z.string().trim().regex(/^\d{6}$/, 'OTP must be a 6-digit code'),
+  newPassword: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(72, 'Password must be at most 72 characters'),
+});
+
 export type SignupBody = z.infer<typeof signupSchema>;
 export type VerifyOtpBody = z.infer<typeof verifyOtpSchema>;
 export type LoginBody = z.infer<typeof loginSchema>;
+export type ForgotPasswordBody = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordBody = z.infer<typeof resetPasswordSchema>;

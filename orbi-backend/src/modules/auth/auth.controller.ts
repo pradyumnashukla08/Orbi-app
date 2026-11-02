@@ -3,9 +3,18 @@ import { ApiError } from '../../utils/ApiError.js';
 import { ApiResponse } from '../../utils/ApiResponse.js';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import { toPublicUser } from '../user/user.mapper.js';
-import type { LoginInput, SignupInput, VerifyOtpInput } from './auth.interface.js';
+import type {
+  ForgotPasswordInput,
+  LoginInput,
+  ResetPasswordInput,
+  SignupInput,
+  VerifyOtpInput,
+} from './auth.interface.js';
 import {
+  forgotPassword as forgotPasswordService,
   login as loginService,
+  logout as logoutService,
+  resetPassword as resetPasswordService,
   signup as signupService,
   verifyOtp as verifyOtpService,
 } from './auth.service.js';
@@ -31,4 +40,27 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
   }
 
   return ApiResponse.ok(res, { user: toPublicUser(req.user) }, 'Current user profile.');
+});
+
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.user) {
+    throw ApiError.unauthorized('Authentication required');
+  }
+
+  await logoutService(req.user._id.toString());
+  return ApiResponse.ok(res, null, 'Logged out successfully.');
+});
+
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  await forgotPasswordService(req.body as ForgotPasswordInput);
+  return ApiResponse.ok(
+    res,
+    null,
+    'If this email is registered, a password reset OTP has been sent.',
+  );
+});
+
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+  await resetPasswordService(req.body as ResetPasswordInput);
+  return ApiResponse.ok(res, null, 'Password reset successfully. Please login with the new password.');
 });
