@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashValue, verifyHash } from '../../utils/hash.js';
-import { refreshTokenExpiry, signAccessToken, signRefreshToken } from '../../utils/jwt.js';
+import { refreshTokenExpiry, signAccessToken, signRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 import { sendMail } from '../../utils/mailer.js';
 import { toPublicUser } from '../user/user.mapper.js';
 import { User } from '../user/user.model.js';
@@ -12,6 +12,8 @@ import type {
   LoginInput,
   LoginResult,
   ResetPasswordInput,
+  RotateTokenInput,
+  RotateTokenResult,
   SignupInput,
   SignupResult,
   VerifyOtpInput,
@@ -139,6 +141,53 @@ export const logout = async (userId: string): Promise<void> => {
     { _id: userId },
     { $unset: { refreshTokenHash: 1, refreshTokenHashExpiry: 1 } },
   );
+};
+
+export const rotateToken = async (input: RotateTokenInput): Promise<RotateTokenResult> => {
+  const payload = verifyRefreshToken(input.refreshToken);
+
+  const user = await User.findById(payload.sub).select('+refreshTokenHash +refreshTokenHashExpiry');
+
+  if (!user) {
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  if (
+    !user.refreshTokenHash ||
+    !user.refreshTokenHashExpiry ||
+    user.refreshTokenHashExpiry.getTime() < Date.now()
+  ) {
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  if (!verifyHash(input.refreshToken, user.refreshTokenHash)) {
+    await User.updateOne(
+      { _id: user._id },
+      { $unset: { refreshTokenHash: 1, refreshTokenHashExpiry: 1 } },
+    );
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  const tokenPayload = {
+    sub: user._id.toString(),
+    role: user.role,
+    provider: user.provider,
+  };
+
+  const accessToken = signAccessToken(tokenPayload);
+  const refreshToken = signRefreshToken(tokenPayload);
+
+  user.refreshTokenHash = hashValue(refreshToken);
+  user.refreshTokenHashExpiry = refreshTokenExpiry();
+  await user.save();
+
+  return {
+    tokenType: 'Bearer',
+    accessToken,
+    refreshToken,
+    accessTokenExpiresIn: env.JWT_ACCESS_EXPIRES_IN_SECONDS,
+    refreshTokenExpiresIn: env.JWT_REFRESH_EXPIRES_IN_SECONDS,
+  };
 };
 
 export const forgotPassword = async (input: ForgotPasswordInput): Promise<void> => {

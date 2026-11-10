@@ -7,6 +7,7 @@ import type {
   ForgotPasswordInput,
   LoginInput,
   ResetPasswordInput,
+  RotateTokenInput,
   SignupInput,
   VerifyOtpInput,
 } from './auth.interface.js';
@@ -15,6 +16,7 @@ import {
   login as loginService,
   logout as logoutService,
   resetPassword as resetPasswordService,
+  rotateToken as rotateTokenService,
   signup as signupService,
   verifyOtp as verifyOtpService,
 } from './auth.service.js';
@@ -49,6 +51,11 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
 
   await logoutService(req.user._id.toString());
   return ApiResponse.ok(res, null, 'Logged out successfully.');
+});
+
+export const rotateToken = asyncHandler(async (req: Request, res: Response) => {
+  const result = await rotateTokenService(req.body as RotateTokenInput);
+  return ApiResponse.ok(res, result, 'Token rotated successfully.');
 });
 
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {

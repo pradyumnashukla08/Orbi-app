@@ -8,6 +8,7 @@ import {
   login,
   logout,
   resetPassword,
+  rotateToken,
   signup,
   verifyOtp,
 } from './auth.controller.js';
@@ -15,6 +16,7 @@ import {
   forgotPasswordSchema,
   loginSchema,
   resetPasswordSchema,
+  rotateTokenSchema,
   signupSchema,
   verifyOtpSchema,
 } from './auth.validation.js';
@@ -26,5 +28,6 @@ authRoutes.post('/verify-otp', authRateLimiter, validateBody(verifyOtpSchema), v
 authRoutes.post('/login', authRateLimiter, validateBody(loginSchema), login);
 authRoutes.post('/forgot-password', authRateLimiter, validateBody(forgotPasswordSchema), forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, validateBody(resetPasswordSchema), resetPassword);
+authRoutes.post('/rotate-token', authRateLimiter, validateBody(rotateTokenSchema), rotateToken);
 authRoutes.get('/me', authenticate, getMe);
 authRoutes.post('/logout', authenticate, logout);

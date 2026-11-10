@@ -48,5 +48,30 @@ export const verifyAccessToken = (token: string): TokenPayload => {
   return decoded as TokenPayload;
 };
 
+export const verifyRefreshToken = (token: string): TokenPayload => {
+  let decoded: unknown;
+
+  try {
+    decoded = jwt.verify(token, env.JWT_REFRESH_SECRET);
+  } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      throw ApiError.unauthorized('Refresh token expired');
+    }
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  if (
+    typeof decoded !== 'object' ||
+    decoded === null ||
+    !('sub' in decoded) ||
+    !('type' in decoded) ||
+    decoded.type !== 'refresh'
+  ) {
+    throw ApiError.unauthorized('Invalid refresh token');
+  }
+
+  return decoded as TokenPayload;
+};
+
 export const refreshTokenExpiry = (): Date =>
   new Date(Date.now() + env.JWT_REFRESH_EXPIRES_IN_SECONDS * 1000);

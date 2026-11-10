@@ -35,6 +35,18 @@ export interface LoginResult {
   refreshTokenExpiresIn: number;
 }
 
+export interface RotateTokenInput {
+  refreshToken: string;
+}
+
+export interface RotateTokenResult {
+  tokenType: 'Bearer';
+  accessToken: string;
+  refreshToken: string;
+  accessTokenExpiresIn: number;
+  refreshTokenExpiresIn: number;
+}
+
 export interface ForgotPasswordInput {
   email: string;
 }

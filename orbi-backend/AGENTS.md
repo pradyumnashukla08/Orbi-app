@@ -155,7 +155,7 @@ Response shape must stay consistent:
 ## API conventions
 
 - Base path: `/api/v1`.
-- Auth endpoints: `POST /api/v1/auth/signup`, `POST /api/v1/auth/verify-otp`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `GET /api/v1/auth/me`.
+- Auth endpoints: `POST /api/v1/auth/signup`, `POST /api/v1/auth/verify-otp`, `POST /api/v1/auth/login`, `POST /api/v1/auth/rotate-token`, `POST /api/v1/auth/logout`, `POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`, `GET /api/v1/auth/me`.
 - Health: `GET /api/v1/health`.
 - Android clients receive tokens as JSON and send `Authorization: Bearer <accessToken>`.
 - New endpoints must keep the `{ success, message, data }` envelope.
