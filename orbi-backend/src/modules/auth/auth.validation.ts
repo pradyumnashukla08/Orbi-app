@@ -38,6 +38,10 @@ export const rotateTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token is required'),
 });
 
+export const googleLoginSchema = z.object({
+  idToken: z.string().min(1, 'Google ID token is required'),
+});
+
 export const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
@@ -55,5 +59,6 @@ export type SignupBody = z.infer<typeof signupSchema>;
 export type VerifyOtpBody = z.infer<typeof verifyOtpSchema>;
 export type LoginBody = z.infer<typeof loginSchema>;
 export type RotateTokenBody = z.infer<typeof rotateTokenSchema>;
+export type GoogleLoginBody = z.infer<typeof googleLoginSchema>;
 export type ForgotPasswordBody = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordBody = z.infer<typeof resetPasswordSchema>;

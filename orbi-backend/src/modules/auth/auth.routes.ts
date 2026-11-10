@@ -5,6 +5,7 @@ import { validateBody } from '../../middlewares/validate.middleware.js';
 import {
   forgotPassword,
   getMe,
+  googleLogin,
   login,
   logout,
   resetPassword,
@@ -14,6 +15,7 @@ import {
 } from './auth.controller.js';
 import {
   forgotPasswordSchema,
+  googleLoginSchema,
   loginSchema,
   resetPasswordSchema,
   rotateTokenSchema,
@@ -26,6 +28,7 @@ export const authRoutes = Router();
 authRoutes.post('/signup', authRateLimiter, validateBody(signupSchema), signup);
 authRoutes.post('/verify-otp', authRateLimiter, validateBody(verifyOtpSchema), verifyOtp);
 authRoutes.post('/login', authRateLimiter, validateBody(loginSchema), login);
+authRoutes.post('/google', authRateLimiter, validateBody(googleLoginSchema), googleLogin);
 authRoutes.post('/forgot-password', authRateLimiter, validateBody(forgotPasswordSchema), forgotPassword);
 authRoutes.post('/reset-password', authRateLimiter, validateBody(resetPasswordSchema), resetPassword);
 authRoutes.post('/rotate-token', authRateLimiter, validateBody(rotateTokenSchema), rotateToken);

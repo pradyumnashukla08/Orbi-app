@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import { env } from '../../config/env.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { hashValue, verifyHash } from '../../utils/hash.js';
@@ -9,6 +10,7 @@ import { toPublicUser } from '../user/user.mapper.js';
 import { User } from '../user/user.model.js';
 import type {
   ForgotPasswordInput,
+  GoogleLoginInput,
   LoginInput,
   LoginResult,
   ResetPasswordInput,
@@ -22,6 +24,8 @@ import type {
 import { getOtpTemplate } from '../../tamplates/email-tamplates/otp.tampltes.js';
 
 const createOtp = (): string => randomInt(100000, 1000000).toString();
+
+const googleClient = new OAuth2Client();
 
 export const signup = async (input: SignupInput): Promise<SignupResult> => {
   const existingUser = await User.exists({ email: input.email });
@@ -111,6 +115,90 @@ export const login = async (input: LoginInput): Promise<LoginResult> => {
 
   if (!user.isVerified) {
     throw ApiError.forbidden('Email not verified. Please verify the OTP first');
+  }
+
+  const tokenPayload = {
+    sub: user._id.toString(),
+    role: user.role,
+    provider: user.provider,
+  };
+
+  const accessToken = signAccessToken(tokenPayload);
+  const refreshToken = signRefreshToken(tokenPayload);
+
+  user.refreshTokenHash = hashValue(refreshToken);
+  user.refreshTokenHashExpiry = refreshTokenExpiry();
+  await user.save();
+
+  return {
+    user: toPublicUser(user),
+    tokenType: 'Bearer',
+    accessToken,
+    refreshToken,
+    accessTokenExpiresIn: env.JWT_ACCESS_EXPIRES_IN_SECONDS,
+    refreshTokenExpiresIn: env.JWT_REFRESH_EXPIRES_IN_SECONDS,
+  };
+};
+
+export const googleLogin = async (input: GoogleLoginInput): Promise<LoginResult> => {
+  if (!env.GOOGLE_CLIENT_ID) {
+    throw ApiError.internal('Google sign-in is not configured');
+  }
+
+  let email: string | undefined;
+  let emailVerified: boolean | undefined;
+  let fullName: string | undefined;
+  let profileImageUrl: string | undefined;
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: input.idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    email = payload?.email;
+    emailVerified = payload?.email_verified;
+    fullName = payload?.name;
+    profileImageUrl = payload?.picture;
+  } catch {
+    throw ApiError.unauthorized('Invalid or expired Google token');
+  }
+
+  if (!email || emailVerified !== true) {
+    throw ApiError.unauthorized('Google account email is not verified');
+  }
+
+  const normalizedEmail = email.toLowerCase();
+
+  let user = await User.findOne({ email: normalizedEmail });
+
+  if (user && user.provider !== 'google') {
+    throw ApiError.badRequest('This account uses email and password login');
+  }
+
+  if (!user) {
+    const fallbackName = normalizedEmail.split('@')[0] ?? normalizedEmail;
+    user = await User.create({
+      fullName: (fullName ?? fallbackName).slice(0, 80),
+      email: normalizedEmail,
+      provider: 'google',
+      role: 'user',
+      isVerified: true,
+      profileImageUrl,
+    });
+  } else {
+    let changed = false;
+    if (!user.isVerified) {
+      user.isVerified = true;
+      changed = true;
+    }
+    if (profileImageUrl && user.profileImageUrl !== profileImageUrl) {
+      user.profileImageUrl = profileImageUrl;
+      changed = true;
+    }
+    if (changed) {
+      await user.save();
+    }
   }
 
   const tokenPayload = {

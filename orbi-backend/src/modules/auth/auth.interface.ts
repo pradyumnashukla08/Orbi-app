@@ -35,6 +35,10 @@ export interface LoginResult {
   refreshTokenExpiresIn: number;
 }
 
+export interface GoogleLoginInput {
+  idToken: string;
+}
+
 export interface RotateTokenInput {
   refreshToken: string;
 }

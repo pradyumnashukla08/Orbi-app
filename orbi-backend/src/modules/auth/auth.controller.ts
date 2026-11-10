@@ -5,6 +5,7 @@ import { asyncHandler } from '../../utils/asyncHandler.js';
 import { toPublicUser } from '../user/user.mapper.js';
 import type {
   ForgotPasswordInput,
+  GoogleLoginInput,
   LoginInput,
   ResetPasswordInput,
   RotateTokenInput,
@@ -13,6 +14,7 @@ import type {
 } from './auth.interface.js';
 import {
   forgotPassword as forgotPasswordService,
+  googleLogin as googleLoginService,
   login as loginService,
   logout as logoutService,
   resetPassword as resetPasswordService,
@@ -33,6 +35,11 @@ export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const result = await loginService(req.body as LoginInput);
+  return ApiResponse.ok(res, result, 'Login successful.');
+});
+
+export const googleLogin = asyncHandler(async (req: Request, res: Response) => {
+  const result = await googleLoginService(req.body as GoogleLoginInput);
   return ApiResponse.ok(res, result, 'Login successful.');
 });
 

@@ -36,6 +36,7 @@ const envSchema = z
     ),
     MAIL_FROM: optionalEmail,
     MAIL_FROM_NAME: z.preprocess(emptyToUndefined, z.string().trim().default('ORBI')),
+    GOOGLE_CLIENT_ID: z.preprocess(emptyToUndefined, z.string().trim().min(1).optional()),
   })
   .superRefine((value, ctx) => {
     if (Boolean(value.SMTP_USER) !== Boolean(value.SMTP_PASS)) {
