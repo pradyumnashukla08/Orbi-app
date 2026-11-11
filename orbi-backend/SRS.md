@@ -1,6 +1,6 @@
 # ORBI --- Software Requirements Specification (SRS)
 
-**Document status:** Draft for product and architecture review\
+**Document status:** Draft with implementation snapshot\
 **Product:** ORBI --- Personal Visual Memory\
 **Version:** 0.1\
 **Date:** 1 November 2026\
@@ -13,6 +13,28 @@ capture features and optional cloud processing
 > behavior should be validated, what constraints shape the design, and
 > which decisions remain open. This is a requirements document, not
 > proof that the described features have already been implemented.
+
+## Current implementation snapshot
+
+The following requirements are implemented in the current repository:
+
+- The mobile onboarding screen requests camera, Photos/media-library, and
+  media-library permissions after an explicit user tap.
+- Permission denial closes the native prompt without showing an error
+  toast.
+- Users can select an image from the gallery or capture one with the
+  camera.
+- The selected image is persisted locally in AsyncStorage before upload.
+- Authenticated clients can upload an image to `POST /api/v1/images`.
+- The backend validates the image type and data URL, authenticates the
+  user, and stores the image in MongoDB with the owning user ID.
+- The email/password login screen consumes backend JWT tokens and stores
+  the access and refresh tokens in the persisted user state.
+
+These are the implemented MVP behaviors, not a claim that all requirements
+in this SRS are complete. Signup OTP verification UI, Google provider
+integration, durable background retry processing, OCR, embeddings, and
+semantic search remain pending.
 
 ------------------------------------------------------------------------
 

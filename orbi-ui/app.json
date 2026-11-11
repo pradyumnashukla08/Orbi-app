@@ -23,7 +23,21 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow ORBI to choose images you explicitly want to save.",
+          "cameraPermission": "Allow ORBI to capture images you explicitly want to save."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow ORBI to access photos you choose to save.",
+          "savePhotosPermission": "Allow ORBI to save images you choose to your device."
+        }
+      ]
     ]
   }
 }

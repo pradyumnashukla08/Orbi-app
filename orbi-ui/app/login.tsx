@@ -6,9 +6,10 @@ import Toast from "react-native-toast-message";
 import Button from "../components/common/Button";
 import InputField from "../components/common/InputField";
 import { useUserStore } from "../stores/user/useUserStore";
+import api from "../config/api";
 
 const Login = () => {
-  const { userName, login } = useUserStore();
+  const { userName, login, setAuthTokens } = useUserStore();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -25,9 +26,14 @@ const Login = () => {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      const displayName = userName.trim() || email.split("@")[0] || "User";
-      login(displayName, email.trim());
+      const response = await api.post("/auth/login", {
+        email: email.trim(),
+        password,
+      });
+      const result = response.data.data;
+      const displayName = result.user.fullName || userName.trim() || email.split("@")[0] || "User";
+      login(displayName, result.user.email);
+      setAuthTokens(result.accessToken, result.refreshToken);
 
       Toast.show({
         type: "success",
@@ -36,6 +42,12 @@ const Login = () => {
       });
       // Replace stack so user cannot back into login screen
       router.replace("/user");
+    } catch (error) {
+      Toast.show({
+        type: "error",
+        text1: "Sign in failed",
+        text2: "Please check your credentials and verify your email.",
+      });
     } finally {
       setIsLoading(false);
     }

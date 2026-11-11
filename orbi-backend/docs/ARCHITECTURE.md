@@ -1,7 +1,7 @@
 # ORBI --- System Architecture
 
 **Document type:** High-Level + Detailed Technical Architecture\
-**Status:** Proposed baseline for MVP\
+**Status:** Proposed baseline with an implemented image-capture slice\
 **Platform:** Android only\
 **Primary goal:** Save screenshots quickly, process them asynchronously,
 and let users find them later using text and semantic search.\
@@ -30,6 +30,28 @@ and how the system balances:
 This is an architecture proposal, not a claim that every component has
 already been implemented. Technology choices and thresholds must be
 validated with prototypes and measurements on real Android devices.
+
+## Implementation status (November 2026)
+
+The first end-to-end image slice is now implemented:
+
+1. `orbi-ui/app/permissions.tsx` requests camera, Photos/media-library,
+   and media-library access from an explicit user action. Permission
+   denial is silent after the native prompt closes.
+2. `orbi-ui/app/user/capture.tsx` lets the user choose from the gallery or
+   use the camera through `expo-image-picker`.
+3. The selected image is converted to a bounded JPEG/PNG/WebP data URL and
+   written to AsyncStorage before network synchronization.
+4. The mobile client sends the pending image to
+   `POST /api/v1/images` with the backend access token.
+5. The backend authenticates the request and stores the image in the
+   MongoDB `images` collection, isolated by `userId`.
+
+The current implementation uses AsyncStorage rather than the SQLite queue
+described in the target architecture. MongoDB data URLs are an MVP
+storage choice; object storage and a durable retry queue should replace
+this approach before large-scale production use. OCR, embeddings, search,
+and background processing remain planned.
 
 ## 2. Product summary
 

@@ -34,11 +34,14 @@ export type UserState = {
   searchQuery: string;
   activeFilter: "all" | CaptureType;
   aiProcessedCount: number;
+  accessToken: string | null;
+  refreshToken: string | null;
 
   // Actions
   setHasHydrated: (hydrated: boolean) => void;
   login: (name?: string, email?: string) => void;
   logout: () => void;
+  setAuthTokens: (accessToken: string, refreshToken: string) => void;
   setSearchQuery: (query: string) => void;
   setActiveFilter: (filter: "all" | CaptureType) => void;
   addItem: (item: Omit<BrainItem, "id" | "timestamp">) => void;
@@ -126,6 +129,8 @@ export const useUserStore = create<UserState>()(
       searchQuery: "",
       activeFilter: "all",
       aiProcessedCount: 12,
+      accessToken: null,
+      refreshToken: null,
 
       setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
@@ -141,7 +146,12 @@ export const useUserStore = create<UserState>()(
           isAuthenticated: false,
           userName: "",
           userEmail: "",
+          accessToken: null,
+          refreshToken: null,
         }),
+
+      setAuthTokens: (accessToken, refreshToken) =>
+        set({ accessToken, refreshToken, isAuthenticated: true }),
 
       setSearchQuery: (query) => set({ searchQuery: query }),
       setActiveFilter: (filter) => set({ activeFilter: filter }),
@@ -199,6 +209,8 @@ export const useUserStore = create<UserState>()(
         recentSearches: state.recentSearches,
         plan: state.plan,
         aiProcessedCount: state.aiProcessedCount,
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
       }),
     }
   )

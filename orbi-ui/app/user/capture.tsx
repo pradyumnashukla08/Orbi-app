@@ -1,11 +1,23 @@
 import { useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
 import Button from "../../components/common/Button";
 import { useUserStore } from "../../stores/user/useUserStore";
 import type { CaptureType } from "../../stores/user/useUserStore";
+import api from "../../config/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type PendingImage = {
+  title: string;
+  collection: string;
+  mimeType: "image/jpeg" | "image/png" | "image/webp";
+  dataUrl: string;
+};
+
+const PENDING_IMAGE_KEY = "orbi-pending-images";
 
 const CAPTURE_MODES: { type: CaptureType; label: string; icon: string; color: string }[] = [
   { type: "image", label: "Screenshot", icon: "📸", color: "#818cf8" },
@@ -16,12 +28,51 @@ const CAPTURE_MODES: { type: CaptureType; label: string; icon: string; color: st
 ];
 
 const Capture = () => {
-  const { addItem, collections } = useUserStore();
+  const { addItem, collections, accessToken } = useUserStore();
+  const [image, setImage] = useState<PendingImage | null>(null);
   const [selectedType, setSelectedType] = useState<CaptureType>("note");
   const [title, setTitle] = useState<string>("");
   const [snippet, setSnippet] = useState<string>("");
   const [selectedCollection, setSelectedCollection] = useState<string>(collections[0]?.name ?? "Ideas");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Toast.show({ type: "error", text1: "Permission required", text2: "Gallery permission is needed to choose an image." });
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      base64: true,
+    });
+    const asset = result.canceled ? undefined : result.assets[0];
+    if (!asset?.base64) return;
+
+    const mimeType = asset.mimeType === "image/png" ? "image/png" : asset.mimeType === "image/webp" ? "image/webp" : "image/jpeg";
+    setImage({ title: title.trim() || "Captured image", collection: selectedCollection, mimeType, dataUrl: `data:${mimeType};base64,${asset.base64}` });
+  };
+
+  const captureImage = async () => {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Toast.show({ type: "error", text1: "Permission required", text2: "Camera permission is needed to capture an image." });
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+      base64: true,
+    });
+    const asset = result.canceled ? undefined : result.assets[0];
+    if (!asset?.base64) return;
+
+    const mimeType = asset.mimeType === "image/png" ? "image/png" : asset.mimeType === "image/webp" ? "image/webp" : "image/jpeg";
+    setImage({ title: title.trim() || "Captured image", collection: selectedCollection, mimeType, dataUrl: `data:${mimeType};base64,${asset.base64}` });
+  };
 
   const handleCapture = async () => {
     if (!title.trim()) {
@@ -35,6 +86,19 @@ const Capture = () => {
 
     setIsSubmitting(true);
     try {
+      if (selectedType === "image") {
+        if (!image) {
+          await pickImage();
+          return;
+        }
+        const pending: PendingImage = { ...image, title: title.trim(), collection: selectedCollection };
+        await AsyncStorage.setItem(PENDING_IMAGE_KEY, JSON.stringify(pending));
+        if (!accessToken) throw new Error("Authentication required");
+        await api.post("/images", pending, {
+          headers: { Authorization: ["Bearer", accessToken].join(" ") },
+        });
+        await AsyncStorage.removeItem(PENDING_IMAGE_KEY);
+      }
       // Simulate intelligent AI summarization & organization delay
       await new Promise((resolve) => setTimeout(resolve, 600));
 
@@ -54,7 +118,14 @@ const Capture = () => {
 
       setTitle("");
       setSnippet("");
+      setImage(null);
       router.push("/user");
+    } catch {
+      Toast.show({
+        type: "error",
+        text1: "Image sync failed",
+        text2: "The image remains saved locally and can be retried.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -128,6 +199,13 @@ const Capture = () => {
               className="rounded-xl border border-orbi-border bg-orbi-bg px-3.5 py-2.5 text-sm font-medium text-white"
             />
           </View>
+
+          {selectedType === "image" && (
+            <View className="flex-row gap-2">
+              <Button title="Gallery" variant="secondary" size="md" onPress={pickImage} className="flex-1" />
+              <Button title="Camera" variant="secondary" size="md" onPress={captureImage} className="flex-1" />
+            </View>
+          )}
 
           <View>
             <Text className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">

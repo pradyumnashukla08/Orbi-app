@@ -8,10 +8,34 @@
 > it with useful metadata, and an AI-assisted pipeline makes the memory
 > searchable by meaning, text, category, and date.
 
-**Project status:** Concept / early development\
+**Project status:** Early MVP implementation\
 **Initial target:** Mobile-first MVP\
 **Working name:** ORBI\
 **Primary experience:** One-tap save + natural-language retrieval
+
+### Current implementation snapshot
+
+The current mobile flow is implemented in `orbi-ui` with Expo and React
+Native:
+
+- The onboarding permissions screen requests camera, Photos/media-library,
+  and device media-library access only after the user taps **Allow Camera
+  & Photos**.
+- If the user denies a permission, the native prompt closes without an
+  error toast; the user remains on the permissions screen.
+- The capture screen supports choosing an image from the gallery or taking
+  one with the camera.
+- Selected images are stored locally in AsyncStorage first. A pending
+  image remains available locally if the backend sync fails.
+- Authenticated image sync uses `POST /api/v1/images` and stores the image
+  as a validated data URL in MongoDB.
+- Login uses the backend JWT response. Signup and Google UI flows still
+  require the remaining verification/provider integration before they
+  should be treated as production authentication.
+
+The implementation currently uses MongoDB and AsyncStorage for this
+vertical slice. The broader SQLite, OCR, embeddings, and semantic-search
+design described below remains planned work.
 
 ------------------------------------------------------------------------
 

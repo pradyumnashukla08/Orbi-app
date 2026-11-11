@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as MediaLibrary from "expo-media-library";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { router } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -28,8 +30,36 @@ const TRUST_POINTS = [
 
 const Permissions = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [permissionStatus, setPermissionStatus] = useState<"idle" | "granted" | "denied">("idle");
+
+  const requestMediaPermissions = async () => {
+    setIsLoading(true);
+    try {
+      const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+      const photosPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const storagePermission = await MediaLibrary.requestPermissionsAsync();
+      const granted =
+        cameraPermission.granted && photosPermission.granted && storagePermission.granted;
+
+      setPermissionStatus(granted ? "granted" : "denied");
+      if (granted) {
+        Toast.show({
+          type: "success",
+          text1: "Permissions granted",
+          text2: "ORBI can now save the images you choose.",
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleContinue = async () => {
+    if (permissionStatus !== "granted") {
+      await requestMediaPermissions();
+      return;
+    }
+
     setIsLoading(true);
     try {
       await new Promise((resolve) => setTimeout(resolve, 600));
@@ -94,6 +124,26 @@ const Permissions = () => {
                   <Text className="text-sm font-bold text-white">{point.title}</Text>
                   <Text className="mt-0.5 text-xs text-slate-400">{point.subtitle}</Text>
                 </View>
+
+                <View className="rounded-2xl border border-orbi-primary/40 bg-purple-950/30 p-4">
+                  <Text className="text-sm font-bold text-white">Camera & Photos access</Text>
+                  <Text className="mt-1 text-xs leading-relaxed text-slate-400">
+                    Just like Instagram, your phone will ask for permission. ORBI only uses access when you choose an image to save.
+                  </Text>
+                  <Button
+                    title={
+                      permissionStatus === "granted"
+                        ? "Camera & Photos Allowed ✓"
+                        : "Allow Camera & Photos"
+                    }
+                    variant="secondary"
+                    size="md"
+                    isLoading={isLoading}
+                    onPress={requestMediaPermissions}
+                    className="mt-3"
+                    accessibilityLabel="Allow camera and photos access"
+                  />
+                </View>
               </View>
             ))}
           </View>
@@ -107,6 +157,7 @@ const Permissions = () => {
             size="lg"
             isLoading={isLoading}
             onPress={handleContinue}
+            disabled={permissionStatus !== "granted"}
             className="bg-orbi-primary active:bg-orbi-primaryDark border-orbi-glow shadow-lg shadow-purple-500/30"
             accessibilityLabel="Continue to Second Brain"
           />
